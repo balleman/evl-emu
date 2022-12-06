@@ -19,13 +19,11 @@ import socket
 import argparse
 from pathlib import Path
 
-REQUIREMENTS = ['pyserial']
-
 DEFAULT_PARTITIONS = 1
 DEFAULT_ZONES = 64
 
-SERIAL_PORT = '/dev/it100'
-SERIAL_BAUD = 9600
+SERIAL_HOST = '127.0.0.1'
+SERIAL_PORT = 8023
 NETWORK_HOST = '0.0.0.0'
 NETWORK_PORT = 4025
 
@@ -243,10 +241,7 @@ def serialRead(readQueueSer, port):
 		
 		while True:
 			try:
-				if (port.is_open):
-					read_byte = port.read(1)
-				else:
-					logger.error("Serial port disconnected")
+				read_byte = port.recv(1)
 			except:
 				raise IOError('Lost access to serial port')
 
@@ -312,7 +307,7 @@ def serialWrite(writeQueueSer, port):
 			else:
 				logger.debug ("DSC Out < {}".format(msg[0:msg.__len__() - 4] ))
 
-			port.write(bytes(msg, 'UTF-8'))
+			port.send(bytes(msg, 'UTF-8'))
 
 	except KeyboardInterrupt:
 		pass
@@ -747,8 +742,12 @@ if __name__ == "__main__":
 		logger.warning("Startup Process: {}".format(os.getpid()))
 
 		# Open serial port
-		ser = None
-		ser = serial.Serial(SERIAL_PORT, SERIAL_BAUD, timeout=None)
+		ser = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		ser.connect((SERIAL_HOST, SERIAL_PORT))
+		ser.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+		ser.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 1)
+		ser.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 3)
+		ser.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
 
 		# Create socket
 		sock = socket.socket()
@@ -875,6 +874,7 @@ if __name__ == "__main__":
 		if 'p_msghandler_evl' in locals() and p_msghandler_evl.is_alive(): p_msghandler_evl.terminate()
 		if 'p_networkreadtest' in locals() and p_networkreadtest.is_alive(): p_networkreadtest.terminate()
 
+		ser.shutdown(socket.SHUT_RDWR)
 		ser.close()
 		sock.shutdown(socket.SHUT_RDWR)
 		sock.close()
