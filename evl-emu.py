@@ -855,9 +855,6 @@ if __name__ == "__main__":
 		# Now stop execution until a signal is received.  At this point, all of the work is being done by the subprocesses.
 		signal.pause()
 
-	except (serial.serialutil.SerialException):
-		logger.error("Can't open port")
-		
 	except (KeyboardInterrupt, SystemExit):
 		raise
 	except:
