@@ -12,7 +12,6 @@ import time
 import multiprocessing
 import subprocess
 import signal
-import serial
 import inspect
 import random
 import socket
